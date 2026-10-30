@@ -1,0 +1,17 @@
+<script lang="ts">
+ import {invoke} from '@tauri-apps/api/core';import {t} from './i18n';import {preferences,defaults,accept,session} from './preferences.svelte';
+ let {onclose}:{onclose:()=>void}=$props();let cap=$state(preferences.cap),n=$state(preferences.sample_n),time=$state(preferences.time_mode),theme=$state(preferences.theme),status=$state(''),busy=$state(false);
+ async function save(){busy=true;try{accept(await invoke('save_settings',{preferences:{...preferences,cap,sample_n:n,time_mode:time,theme}}));status=t(session.warning?'settingsSessionOnly':'settingsSaved');}catch(e){status=String((e as {detail?:string}).detail??e);}finally{busy=false;}}
+ async function clear(command:string){busy=true;try{const result=await invoke(command);if(command==='clear_recent')accept(result as {preferences:typeof preferences;warning:null});else session.cacheRevision++;status=t(command==='clear_recent'?'recentCleared':'cacheCleared');}catch(e){status=String((e as {detail?:string}).detail??e);}finally{busy=false;}}
+</script>
+<div class="settings-backdrop"><div class="settings-dialog" role="dialog" tabindex="-1" aria-modal="true" aria-label={t('settings')}><h2>{t('settings')}</h2>
+ <label>{t('defaultCap')}<input aria-label={t('defaultCap')} type="number" min="50" max="5000" bind:value={cap}/></label>
+ <label>{t('defaultSampleN')}<input aria-label={t('defaultSampleN')} type="number" min="1" max="1000000" bind:value={n}/></label>
+ <label>{t('timeDisplay')}<select aria-label={t('timeDisplay')} bind:value={time}><option value="utc">UTC</option><option value="local">{t('localTime')}</option></select></label><p>{t('timeHint')}</p>
+ <label>{t('theme')}<select aria-label={t('theme')} bind:value={theme}><option value="system">{t('themeSystem')}</option><option value="light">{t('themeLight')}</option><option value="dark">{t('themeDark')}</option></select></label>
+ <p>{t('language')}: 简体中文</p>
+ <div class="actions"><button disabled={busy} onclick={()=>{cap=defaults.cap;n=defaults.sample_n;time=defaults.time_mode;theme=defaults.theme;}}>{t('restoreDefaults')}</button><button disabled={busy} onclick={()=>clear('clear_recent')}>{t('clearRecent')}</button><button disabled={busy} onclick={()=>clear('clear_enum_cache')}>{t('clearEnumCache')}</button></div>
+ <p>{t('settingsHint')}</p>{#if status}<p role="status">{status}</p>{/if}{#if session.warning}<p role="alert">{t('settingsSessionOnly')} {session.warning}</p>{/if}
+ <div class="actions"><button disabled={busy||!Number.isInteger(cap)||cap<50||cap>5000||!Number.isInteger(n)||n<1||n>1000000} onclick={save}>{t('saveSettings')}</button><button onclick={onclose}>{t('dismiss')}</button></div>
+</div></div>
+<style>.settings-backdrop{position:fixed;inset:0;background:#0006;z-index:50;display:grid;place-items:center;padding:20px}.settings-dialog{background:var(--surface);color:var(--text);border:1px solid var(--line);border-radius:10px;padding:24px;width:min(500px,100%);max-height:90vh;overflow:auto}h2{margin:0 0 16px}label{display:flex;justify-content:space-between;gap:16px;align-items:center;margin:12px 0;font-size:13px}input,select,button{font:inherit;color:var(--text);background:var(--bg);border:1px solid var(--line);border-radius:5px;padding:8px}input{width:140px}.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:18px}.actions button{font-size:12px}p{font-size:12px;color:var(--muted);line-height:1.7}</style>

@@ -1,0 +1,3 @@
+[build]
+# Keep Rust/linker memory bounded on the development machine (16 GB RAM).
+jobs = 1
